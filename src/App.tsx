@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { TripProvider } from './context/TripContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
@@ -22,7 +23,7 @@ export const MainContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-slate-950">
+    <div className="min-h-screen w-full bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-slate-950 transition-colors duration-300">
       
       {/* Navigation Bar */}
       <Navbar
@@ -31,8 +32,8 @@ export const MainContent: React.FC = () => {
         openCreateModal={() => setCurrentTab('create-trip')}
       />
 
-      {/* Main View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      {/* Main Full-Screen View Area */}
+      <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 xl:px-16 pt-8 pb-16 transition-all duration-300">
         {currentTab === 'dashboard' && (
           <Dashboard
             setCurrentTab={setCurrentTab}
@@ -92,10 +93,12 @@ export const MainContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <TripProvider>
-        <MainContent />
-      </TripProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TripProvider>
+          <MainContent />
+        </TripProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
