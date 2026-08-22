@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, Plus, Calendar, Search, Filter, SlidersHorizontal, ArrowUpDown, ChevronRight } from 'lucide-react';
+import { Compass, Calendar, Search, Filter, SlidersHorizontal, ArrowUpDown, ChevronRight } from 'lucide-react';
 import { useTrips } from '../context/TripContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -62,14 +62,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search bar ..."
-            className="w-full pl-11 pr-4 py-3 bg-theme-subtle border border-theme rounded-2xl text-theme-main placeholder:text-theme-muted text-xs focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
+            className="w-full pl-11 pr-4 py-2.5 bg-theme-subtle border border-theme rounded-2xl text-theme-main placeholder:text-theme-muted text-xs focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
           />
         </div>
 
-        {/* Action Pills: Group by, Filter, Sort by */}
+        {/* Action Controls: Group by | Filter | Sort by */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-          {/* Region Filter / Group by */}
-          <div className="flex items-center gap-2 bg-theme-subtle p-2 rounded-2xl border border-theme">
+          <div className="flex items-center gap-2 bg-theme-subtle p-1.5 rounded-2xl border border-theme">
             <Filter className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF] ml-2" />
             <select
               value={selectedRegionFilter}
@@ -81,12 +80,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
               <option value="Asia" className="bg-theme-card">Group by: Asia</option>
               <option value="North America" className="bg-theme-card">Group by: North America</option>
               <option value="Middle East" className="bg-theme-card">Group by: Middle East</option>
-              <option value="Oceania" className="bg-theme-card">Group by: Oceania</option>
             </select>
           </div>
 
-          {/* Sort By Dropdown */}
-          <div className="flex items-center gap-2 bg-theme-subtle p-2 rounded-2xl border border-theme">
+          <div className="flex items-center gap-2 bg-theme-subtle p-1.5 rounded-2xl border border-theme">
             <ArrowUpDown className="w-4 h-4 text-[#FF5A5F] dark:text-[#FF7A00] ml-2" />
             <select
               value={sortBy}
@@ -94,35 +91,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
               className="bg-transparent text-theme-main text-xs font-bold focus:outline-none pr-2 cursor-pointer"
             >
               <option value="popular" className="bg-theme-card">Sort by: Popularity</option>
-              <option value="cost" className="bg-theme-card">Sort by: Lowest Daily Spend</option>
-              <option value="name" className="bg-theme-card">Sort by: Name (A-Z)</option>
+              <option value="cost" className="bg-theme-card">Sort by: Cost</option>
+              <option value="name" className="bg-theme-card">Sort by: Name</option>
             </select>
           </div>
 
-          <button
-            onClick={() => setCurrentTab('cities')}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-theme-subtle hover:brightness-95 border border-theme text-xs font-bold text-theme-main cursor-pointer"
-          >
+          <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-theme-subtle hover:brightness-95 border border-theme text-xs font-bold text-theme-main">
             <SlidersHorizontal className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
             <span>Filter</span>
           </button>
         </div>
       </div>
 
-      {/* 3. Top Regional Selections */}
+      {/* 3. Browse Popular Regions Section */}
       <section className="space-y-5 w-full">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl sm:text-3xl font-black text-theme-main font-header">Top Regional Selections</h2>
-          <button
-            onClick={() => setCurrentTab('cities')}
-            className="text-xs sm:text-sm font-bold text-[#007A87] dark:text-[#00E5FF] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <span>Browse All</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <h2 className="text-2xl sm:text-3xl font-black text-theme-main font-header">Browse Popular Regions</h2>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
           {regionalSelections.map((reg) => (
             <div
               key={reg.name}
@@ -130,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
                 setSelectedRegionFilter(reg.name);
                 setCurrentTab('cities');
               }}
-              className="glass-card rounded-3xl overflow-hidden relative h-64 sm:h-72 lg:h-80 cursor-pointer group border border-theme shadow-xl hover:shadow-2xl transition-all duration-300 w-full"
+              className="relative h-44 sm:h-52 rounded-3xl overflow-hidden group cursor-pointer border border-theme shadow-lg hover:shadow-2xl transition-all"
             >
               <img
                 src={reg.image}
@@ -151,13 +138,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
       <section className="space-y-5 w-full">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl sm:text-3xl font-black text-theme-main font-header">Previous Trips</h2>
-          <button
-            onClick={() => setCurrentTab('my-trips')}
-            className="text-xs sm:text-sm font-bold text-[#007A87] dark:text-[#00E5FF] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <span>View All ({trips.length})</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openCreateTripModal}
+              className="btn-cta px-4 py-2 rounded-xl text-xs font-bold shadow-md cursor-pointer"
+            >
+              Plan a trip
+            </button>
+            <button
+              onClick={() => setCurrentTab('my-trips')}
+              className="text-xs sm:text-sm font-bold text-[#007A87] dark:text-[#00E5FF] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>View All ({trips.length})</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 w-full">
@@ -178,43 +173,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
                   
                   <div className="absolute top-4 right-4 px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-950/80 backdrop-blur-md text-[#00E5FF] border border-white/10">
-                    {trip.stops.length} Cities
+                    {trip.stops.length} Cities / Stops
                   </div>
 
-                  <div className="absolute bottom-4 left-5 right-5 space-y-1">
-                    <h3 className="text-xl font-bold text-white group-hover:text-[#00E5FF] transition-colors line-clamp-1 font-header">
+                  <div className="absolute bottom-5 left-6 right-6 space-y-1">
+                    <h3 className="text-xl font-black text-white font-header drop-shadow-md group-hover:text-[#00E5FF] transition-colors">
                       {trip.name}
                     </h3>
-                    <p className="text-xs text-slate-300 flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-[#00E5FF]" />
-                      <span>{trip.start_date} ~ {trip.end_date}</span>
-                    </p>
+                    <div className="flex items-center gap-2 text-slate-200 text-xs font-medium">
+                      <Calendar className="w-3.5 h-3.5 text-[#00E5FF]" />
+                      <span>{trip.start_date} to {trip.end_date}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+                {/* Card Content & Financial Info */}
+                <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
                   <p className="text-xs text-theme-muted line-clamp-2 leading-relaxed">
                     {trip.description}
                   </p>
 
-                  <div className="p-4 bg-theme-subtle rounded-2xl border border-theme flex items-center justify-between text-xs">
+                  <div className="grid grid-cols-2 gap-3 p-4 bg-theme-subtle rounded-2xl border border-theme">
                     <div>
-                      <span className="text-theme-muted text-[10px] uppercase font-bold block">Est. Cost</span>
-                      <span className="font-bold text-sm text-theme-main">${breakdown.totalEstimated}</span>
+                      <span className="text-[10px] uppercase font-bold text-theme-muted tracking-wider block">Est. Cost</span>
+                      <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-header">${breakdown.totalEstimated}</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-theme-muted text-[10px] uppercase font-bold block">Target Budget</span>
-                      <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400">${trip.total_budget}</span>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-theme-muted tracking-wider block">Target Budget</span>
+                      <span className="text-base font-black text-[#007A87] dark:text-[#00E5FF] font-header">${trip.total_budget}</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-theme">
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
                     <button
                       onClick={() => {
                         setSelectedTripId(trip.id);
                         setCurrentTab('itinerary-view');
                       }}
-                      className="py-3 rounded-xl bg-theme-subtle hover:brightness-95 text-theme-main text-xs font-bold text-center transition-colors border border-theme cursor-pointer"
+                      className="py-3 rounded-xl bg-theme-subtle hover:brightness-95 text-theme-main text-xs font-bold text-center border border-theme transition-colors cursor-pointer"
                     >
                       View Trip
                     </button>
@@ -234,17 +231,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
           })}
         </div>
       </section>
-
-      {/* 5. Floating Bottom-Right "+ Plan a trip" CTA Button */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={openCreateTripModal}
-          className="btn-cta flex items-center gap-2.5 px-6 py-4 rounded-full text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
-        >
-          <Plus className="w-5 h-5 stroke-[3]" />
-          <span>Plan a trip</span>
-        </button>
-      </div>
 
     </div>
   );
