@@ -10,21 +10,26 @@ export const ActivitySearch: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState<'popular' | 'cost' | 'name'>('popular');
+  const [maxCost, setMaxCost] = useState<number>(300);
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [selectedActivityForAdd, setSelectedActivityForAdd] = useState<ActivityCatalogItem | null>(null);
 
   const filteredActivities = activityCatalog
     .filter((act) => {
+      const q = searchTerm.toLowerCase().trim();
       const matchesSearch =
-        act.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        act.city_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        act.description.toLowerCase().includes(searchTerm.toLowerCase());
+        !q ||
+        (act.title || '').toLowerCase().includes(q) ||
+        (act.city_name || '').toLowerCase().includes(q) ||
+        (act.description || '').toLowerCase().includes(q);
       const matchesCat = selectedCategory === 'All' || act.category === selectedCategory;
-      return matchesSearch && matchesCat;
+      const matchesCost = (act.cost || 0) <= maxCost;
+      return matchesSearch && matchesCat && matchesCost;
     })
     .sort((a, b) => {
       if (sortBy === 'popular') return (b.rating || 4.5) - (a.rating || 4.5);
-      if (sortBy === 'cost') return a.cost - b.cost;
-      return a.title.localeCompare(b.title);
+      if (sortBy === 'cost') return (a.cost || 0) - (b.cost || 0);
+      return (a.title || '').localeCompare(b.title || '');
     });
 
   return (
@@ -38,7 +43,7 @@ export const ActivitySearch: React.FC = () => {
         <p className="text-xs sm:text-sm text-theme-muted mt-1">Discover museum tours, paragliding adventure, culinary walks, and stays.</p>
       </div>
 
-      {/* Search & Controls Bar: [ Search bar ... | Group by | Filter | Sort by... ] (Screen 8 Mockup) */}
+      {/* Search & Controls Bar */}
       <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-theme shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4 w-full bg-theme-card">
         {/* Search Bar */}
         <div className="relative w-full lg:w-96">
@@ -47,7 +52,7 @@ export const ActivitySearch: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search bar ..."
+            placeholder="Search by activity, city, description..."
             className="w-full pl-11 pr-4 py-2.5 bg-theme-subtle border border-theme rounded-2xl text-theme-main placeholder:text-theme-muted text-xs focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
           />
         </div>
@@ -82,12 +87,53 @@ export const ActivitySearch: React.FC = () => {
             </select>
           </div>
 
-          <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-theme-subtle hover:brightness-95 border border-theme text-xs font-bold text-theme-main">
+          <button
+            onClick={() => setShowFilterDrawer(!showFilterDrawer)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border border-theme text-xs font-bold transition-all cursor-pointer ${
+              showFilterDrawer || maxCost < 300
+                ? 'bg-[#007A87]/20 text-[#007A87] dark:text-[#00E5FF] border-[#007A87]/40'
+                : 'bg-theme-subtle hover:brightness-95 text-theme-main'
+            }`}
+          >
             <SlidersHorizontal className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
             <span>Filter</span>
           </button>
         </div>
       </div>
+
+      {/* Expandable Advanced Filter Drawer */}
+      {showFilterDrawer && (
+        <div className="glass-panel p-5 rounded-3xl border border-theme bg-theme-card shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 animate-in fade-in">
+          <div className="flex-1 space-y-2 w-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-theme-main">Max Activity Cost Limit:</span>
+              <span className="text-xs font-black text-emerald-500">${maxCost}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="300"
+              step="10"
+              value={maxCost}
+              onChange={(e) => setMaxCost(Number(e.target.value))}
+              className="w-full accent-[#007A87] dark:accent-[#00E5FF] cursor-pointer"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('All');
+                setMaxCost(300);
+              }}
+              className="px-4 py-2 rounded-xl bg-theme-subtle text-theme-muted text-xs font-bold border border-theme hover:text-theme-main cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Results Header Section (Screen 8 Wireframe Match) */}
       <div className="space-y-6 w-full">

@@ -12,20 +12,26 @@ export const CitySearch: React.FC<CitySearchProps> = ({ openCreateTripModal }) =
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [sortBy, setSortBy] = useState<'popular' | 'cost' | 'name'>('popular');
+  const [maxBudget, setMaxBudget] = useState<number>(500);
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
   const filteredCities = cities
     .filter((city) => {
+      const q = searchTerm.toLowerCase().trim();
+      const tags = Array.isArray(city.tags) ? city.tags : [];
       const matchesSearch =
-        city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        city.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        city.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
+        !q ||
+        (city.name || '').toLowerCase().includes(q) ||
+        (city.country || '').toLowerCase().includes(q) ||
+        tags.some((t) => (t || '').toLowerCase().includes(q));
       const matchesRegion = selectedRegion === 'All' || city.region === selectedRegion;
-      return matchesSearch && matchesRegion;
+      const matchesBudget = (city.avg_daily_cost || 0) <= maxBudget;
+      return matchesSearch && matchesRegion && matchesBudget;
     })
     .sort((a, b) => {
-      if (sortBy === 'popular') return b.popularity_score - a.popularity_score;
-      if (sortBy === 'cost') return a.avg_daily_cost - b.avg_daily_cost;
-      return a.name.localeCompare(b.name);
+      if (sortBy === 'popular') return (b.popularity_score || 0) - (a.popularity_score || 0);
+      if (sortBy === 'cost') return (a.avg_daily_cost || 0) - (b.avg_daily_cost || 0);
+      return (a.name || '').localeCompare(b.name || '');
     });
 
   return (
@@ -39,7 +45,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({ openCreateTripModal }) =
         <p className="text-xs sm:text-sm text-theme-muted mt-1">Explore worldwide cities, average cost indices, and travel highlights.</p>
       </div>
 
-      {/* Search & Controls Bar: [ Search bar ... | Group by | Filter | Sort by... ] (Screen 8 Mockup) */}
+      {/* Search & Controls Bar */}
       <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-theme shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4 w-full bg-theme-card">
         {/* Search Bar */}
         <div className="relative w-full lg:w-96">
@@ -48,7 +54,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({ openCreateTripModal }) =
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search bar ..."
+            placeholder="Search by city, country, tag..."
             className="w-full pl-11 pr-4 py-2.5 bg-theme-subtle border border-theme rounded-2xl text-theme-main placeholder:text-theme-muted text-xs focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
           />
         </div>
@@ -84,12 +90,53 @@ export const CitySearch: React.FC<CitySearchProps> = ({ openCreateTripModal }) =
             </select>
           </div>
 
-          <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-theme-subtle hover:brightness-95 border border-theme text-xs font-bold text-theme-main">
+          <button
+            onClick={() => setShowFilterDrawer(!showFilterDrawer)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border border-theme text-xs font-bold transition-all cursor-pointer ${
+              showFilterDrawer || maxBudget < 500
+                ? 'bg-[#007A87]/20 text-[#007A87] dark:text-[#00E5FF] border-[#007A87]/40'
+                : 'bg-theme-subtle hover:brightness-95 text-theme-main'
+            }`}
+          >
             <SlidersHorizontal className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
             <span>Filter</span>
           </button>
         </div>
       </div>
+
+      {/* Expandable Advanced Filter Drawer */}
+      {showFilterDrawer && (
+        <div className="glass-panel p-5 rounded-3xl border border-theme bg-theme-card shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 animate-in fade-in">
+          <div className="flex-1 space-y-2 w-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-theme-main">Max Daily Spend Limit:</span>
+              <span className="text-xs font-black text-[#007A87] dark:text-[#00E5FF]">${maxBudget}/day</span>
+            </div>
+            <input
+              type="range"
+              min="50"
+              max="500"
+              step="10"
+              value={maxBudget}
+              onChange={(e) => setMaxBudget(Number(e.target.value))}
+              className="w-full accent-[#007A87] dark:accent-[#00E5FF] cursor-pointer"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedRegion('All');
+                setMaxBudget(500);
+              }}
+              className="px-4 py-2 rounded-xl bg-theme-subtle text-theme-muted text-xs font-bold border border-theme hover:text-theme-main cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Results Header Section (Screen 8 Wireframe Match) */}
       <div className="space-y-6 w-full">

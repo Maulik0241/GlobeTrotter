@@ -14,18 +14,22 @@ export const MyTrips: React.FC<MyTripsProps> = ({ setCurrentTab, openCreateTripM
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'date' | 'budget' | 'name'>('date');
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<Trip | null>(null);
 
   // Filter & Search Logic
   const filteredTrips = trips.filter((trip) => {
+    const q = searchTerm.toLowerCase().trim();
+    const stops = Array.isArray(trip.stops) ? trip.stops : [];
     const matchesSearch =
-      trip.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.stops.some((s) => s.city_name.toLowerCase().includes(searchTerm.toLowerCase()));
+      !q ||
+      (trip.name || '').toLowerCase().includes(q) ||
+      (trip.description || '').toLowerCase().includes(q) ||
+      stops.some((s) => (s.city_name || '').toLowerCase().includes(q));
 
     const now = new Date();
-    const start = new Date(trip.start_date);
-    const end = new Date(trip.end_date);
+    const start = new Date(trip.start_date || '2026-01-01');
+    const end = new Date(trip.end_date || '2026-12-31');
 
     let status = 'upcoming';
     if (now >= start && now <= end) status = 'ongoing';
@@ -37,9 +41,9 @@ export const MyTrips: React.FC<MyTripsProps> = ({ setCurrentTab, openCreateTripM
 
   // Dynamic Sorting Logic
   const sortedTrips = [...filteredTrips].sort((a, b) => {
-    if (sortBy === 'date') return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
-    if (sortBy === 'budget') return b.total_budget - a.total_budget;
-    return a.name.localeCompare(b.name);
+    if (sortBy === 'date') return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime();
+    if (sortBy === 'budget') return (b.total_budget || 0) - (a.total_budget || 0);
+    return (a.name || '').localeCompare(b.name || '');
   });
 
   // Categorize Trips into Ongoing, Up-coming, Completed (Screen 6 Mockup)
@@ -233,12 +237,37 @@ export const MyTrips: React.FC<MyTripsProps> = ({ setCurrentTab, openCreateTripM
             </select>
           </div>
 
-          <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-theme-subtle hover:brightness-95 border border-theme text-xs font-bold text-theme-main">
+          <button
+            onClick={() => setShowFilterDrawer(!showFilterDrawer)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border border-theme text-xs font-bold transition-all cursor-pointer ${
+              showFilterDrawer || searchTerm || selectedFilter !== 'All'
+                ? 'bg-[#007A87]/20 text-[#007A87] dark:text-[#00E5FF] border-[#007A87]/40'
+                : 'bg-theme-subtle hover:brightness-95 text-theme-main'
+            }`}
+          >
             <SlidersHorizontal className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
             <span>Filter</span>
           </button>
         </div>
       </div>
+
+      {showFilterDrawer && (
+        <div className="glass-panel p-4 rounded-3xl border border-theme bg-theme-card shadow-lg flex flex-wrap items-center justify-between gap-4 animate-in fade-in">
+          <div className="text-xs font-bold text-theme-main">
+            Active Filters: <span className="text-[#007A87] dark:text-[#00E5FF]">{selectedFilter} Statuses</span> {searchTerm ? `• Matching "${searchTerm}"` : ''}
+          </div>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedFilter('All');
+              setShowFilterDrawer(false);
+            }}
+            className="px-4 py-2 rounded-xl bg-theme-subtle text-theme-muted text-xs font-bold border border-theme hover:text-theme-main cursor-pointer"
+          >
+            Reset Filters
+          </button>
+        </div>
+      )}
 
       {/* Categorized Sections: Ongoing, Up-coming, Completed (Screen 6 Mockup) */}
       <div className="space-y-10 w-full">

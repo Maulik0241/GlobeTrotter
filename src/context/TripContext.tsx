@@ -189,42 +189,116 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshFromSupabase = async () => {
     if (!isSupabaseConfigured()) return;
     try {
-      // Fetch Cities back from Supabase
+      // Fetch Cities back from Supabase and merge with default catalog
       const { data: dbCities } = await supabase.from('cities').select('*');
       if (dbCities && dbCities.length > 0) {
-        setCities(dbCities);
+        const normalizedCities: CityCatalogItem[] = dbCities.map((c: any) => ({
+          id: String(c.id),
+          name: String(c.name || ''),
+          country: String(c.country || ''),
+          region: String(c.region || 'Global'),
+          cost_index: (c.cost_index || '$$') as '$' | '$$' | '$$$' | '$$$$',
+          popularity_score: Number(c.popularity_score) || 85,
+          image_url: String(c.image_url || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80'),
+          description: String(c.description || ''),
+          avg_daily_cost: Number(c.avg_daily_cost) || 150,
+          tags: Array.isArray(c.tags) ? c.tags : (c.tags ? [String(c.tags)] : ['Travel']),
+        }));
+
+        setCities((prev) => {
+          const map = new Map(prev.map((item) => [item.id, item]));
+          normalizedCities.forEach((nc) => map.set(nc.id, nc));
+          return Array.from(map.values());
+        });
       }
 
       // Fetch Activities Catalog back from Supabase
       const { data: dbActivities } = await supabase.from('activities').select('*');
       if (dbActivities && dbActivities.length > 0) {
-        setActivityCatalog(dbActivities);
+        const normalizedCatalog: ActivityCatalogItem[] = dbActivities.map((a: any) => ({
+          id: String(a.id),
+          city_id: String(a.city_id || ''),
+          city_name: String(a.city_name || 'Destination'),
+          title: String(a.title || ''),
+          category: (a.category || 'Sightseeing') as any,
+          cost: Number(a.cost) || 0,
+          duration_hours: Number(a.duration_hours) || 1,
+          description: String(a.description || ''),
+          image_url: String(a.image_url || ''),
+          rating: Number(a.rating) || 4.8,
+          reviews_count: Number(a.reviews_count) || 120,
+        }));
+        setActivityCatalog(normalizedCatalog);
       }
 
-      // Fetch Trips back from Supabase
+      // Fetch Trips, Stops, and Activities back from Supabase
       const { data: dbTrips } = await supabase.from('trips').select('*');
+      const { data: dbStops } = await supabase.from('stops').select('*');
+      
       if (dbTrips && dbTrips.length > 0) {
         setTrips((prev) => {
           const map = new Map(prev.map((t) => [t.id, t]));
           dbTrips.forEach((t: any) => {
-            if (!map.has(t.id)) {
-              map.set(t.id, {
-                id: t.id,
-                user_id: t.user_id || 'guest',
-                user_name: t.user_name || 'Traveler',
-                name: t.name,
-                description: t.description || '',
-                cover_photo: t.cover_photo || DEFAULT_CITIES[0].image_url,
-                start_date: t.start_date || '2026-09-10',
-                end_date: t.end_date || '2026-09-20',
-                total_budget: t.total_budget || 2500,
-                estimated_cost: t.estimated_cost || 0,
-                is_public: t.is_public ?? true,
-                share_code: t.share_code || 'SHARE-CODE',
-                created_at: t.created_at || new Date().toISOString(),
-                stops: DEFAULT_TRIPS.find((mt) => mt.id === t.id)?.stops || [],
-              });
-            }
+            const tripStopsRaw = (dbStops || []).filter((s: any) => String(s.trip_id) === String(t.id));
+            const existingStops = map.get(t.id)?.stops || DEFAULT_TRIPS.find((mt) => mt.id === t.id)?.stops || [];
+            
+            const builtStops: Stop[] = tripStopsRaw.length > 0
+              ? tripStopsRaw.map((s: any) => {
+                  const stopActivitiesRaw = (dbActivities || []).filter((a: any) => String(a.stop_id) === String(s.id));
+                  const existingStop = existingStops.find((es) => es.id === s.id);
+                  const activitiesList: Activity[] = stopActivitiesRaw.length > 0
+                    ? stopActivitiesRaw.map((act: any) => ({
+                        id: String(act.id),
+                        stop_id: String(act.stop_id),
+                        trip_id: String(t.id),
+                        title: String(act.title || ''),
+                        category: (act.category || 'Sightseeing') as any,
+                        cost: Number(act.cost) || 0,
+                        duration_hours: Number(act.duration_hours) || 1,
+                        scheduled_time: String(act.scheduled_time || '10:00'),
+                        day_number: Number(act.day_number) || 1,
+                        is_completed: Boolean(act.is_completed),
+                        description: String(act.description || ''),
+                        image_url: String(act.image_url || ''),
+                      }))
+                    : existingStop?.activities || [];
+
+                  return {
+                    id: String(s.id),
+                    trip_id: String(s.trip_id),
+                    city_name: String(s.city_name || ''),
+                    country: String(s.country || ''),
+                    order_index: Number(s.order_index) || 0,
+                    arrival_date: String(s.arrival_date || t.start_date),
+                    departure_date: String(s.departure_date || t.end_date),
+                    notes: String(s.notes || ''),
+                    cover_image: String(s.cover_image || DEFAULT_CITIES[0].image_url),
+                    activities: activitiesList,
+                  };
+                })
+              : existingStops;
+
+            const totalEstimated = builtStops.reduce(
+              (acc, s) => acc + (s.activities || []).reduce((a, act) => a + (act.cost || 0), 0),
+              0
+            );
+
+            map.set(t.id, {
+              id: String(t.id),
+              user_id: String(t.user_id || 'guest'),
+              user_name: String(t.user_name || 'Traveler'),
+              name: String(t.name || 'Trip'),
+              description: String(t.description || ''),
+              cover_photo: String(t.cover_photo || DEFAULT_CITIES[0].image_url),
+              start_date: String(t.start_date || '2026-09-10'),
+              end_date: String(t.end_date || '2026-09-20'),
+              total_budget: Number(t.total_budget) || 2500,
+              estimated_cost: totalEstimated || Number(t.estimated_cost) || 0,
+              is_public: t.is_public ?? true,
+              share_code: String(t.share_code || 'SHARE-CODE'),
+              created_at: String(t.created_at || new Date().toISOString()),
+              stops: builtStops,
+            });
           });
           return Array.from(map.values());
         });
