@@ -9,7 +9,7 @@ export const AuthModal: React.FC = () => {
   const [username, setUsername] = useState('alex.traveler@globetrotter.io');
   const [password, setPassword] = useState('demoPass123');
 
-  // Registration fields (Screen 2)
+  // Registration fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
@@ -89,24 +89,29 @@ export const AuthModal: React.FC = () => {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Circular Photo Header (Screen 1 & Screen 2 Mockup Match) */}
+        {/* Profile Avatar & Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative group cursor-pointer mb-3">
             <img
               src={photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-              alt="Photo preview"
+              alt="Profile Avatar"
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-teal-500/30 shadow-xl"
             />
             <div className="absolute inset-0 rounded-full bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
               <Camera className="w-6 h-6 text-white" />
             </div>
           </div>
-          <span className="text-xs text-slate-400 font-semibold mb-1">Photo</span>
+
           <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">
-            {authMode === 'login' && 'Login Screen (Screen 1)'}
-            {authMode === 'signup' && 'Registration Screen (Screen 2)'}
+            {authMode === 'login' && 'Welcome Back'}
+            {authMode === 'signup' && 'Create Your Account'}
             {authMode === 'forgot' && 'Reset Password'}
           </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {authMode === 'login' && 'Sign in to manage your itineraries and trips.'}
+            {authMode === 'signup' && 'Join GlobeTrotter to plan personalized journeys.'}
+            {authMode === 'forgot' && 'Enter your email to receive recovery instructions.'}
+          </p>
         </div>
 
         {/* Alerts */}
@@ -129,7 +134,7 @@ export const AuthModal: React.FC = () => {
           {authMode === 'login' && (
             <>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Username / Email</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Email or Username</label>
                 <div className="relative">
                   <UserIcon className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                   <input
@@ -137,7 +142,7 @@ export const AuthModal: React.FC = () => {
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Username or email"
+                    placeholder="Enter email or username"
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                   />
                 </div>
@@ -171,9 +176,9 @@ export const AuthModal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-400 text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg shadow-teal-500/25 active:scale-[0.99]"
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-400 text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg shadow-teal-500/25 active:scale-[0.99]"
                 >
-                  {isSubmitting ? 'Logging in...' : 'Login Button'}
+                  {isSubmitting ? 'Signing In...' : 'Sign In'}
                 </button>
               </div>
             </>
@@ -181,18 +186,6 @@ export const AuthModal: React.FC = () => {
 
           {authMode === 'signup' && (
             <>
-              {/* Photo URL Input */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Photo Image URL</label>
-                <input
-                  type="url"
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
               {/* First Name & Last Name */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -230,7 +223,7 @@ export const AuthModal: React.FC = () => {
                       required
                       value={emailAddress}
                       onChange={(e) => setEmailAddress(e.target.value)}
-                      placeholder="Email Address"
+                      placeholder="you@example.com"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                     />
                   </div>
@@ -244,7 +237,7 @@ export const AuthModal: React.FC = () => {
                       type="tel"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="Phone Number"
+                      placeholder="+1 (555) 000-0000"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                     />
                   </div>
@@ -261,7 +254,7 @@ export const AuthModal: React.FC = () => {
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="City"
+                      placeholder="e.g. San Francisco"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                     />
                   </div>
@@ -275,7 +268,7 @@ export const AuthModal: React.FC = () => {
                       type="text"
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
-                      placeholder="Country"
+                      placeholder="e.g. United States"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                     />
                   </div>
@@ -292,7 +285,7 @@ export const AuthModal: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create a strong password"
+                    placeholder="Create a password"
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                   />
                 </div>
@@ -300,27 +293,27 @@ export const AuthModal: React.FC = () => {
 
               {/* Additional Information */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Additional Information ....</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Additional Information</label>
                 <div className="relative">
                   <FileText className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                   <textarea
                     rows={3}
                     value={additionalInfo}
                     onChange={(e) => setAdditionalInfo(e.target.value)}
-                    placeholder="Additional Information ...."
+                    placeholder="Share travel goals or travel preferences..."
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-500"
                   />
                 </div>
               </div>
 
-              {/* Register Users Button */}
+              {/* Register Button */}
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-400 text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg shadow-teal-500/25 active:scale-[0.99]"
                 >
-                  {isSubmitting ? 'Registering...' : 'Register Users'}
+                  {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
               </div>
             </>
@@ -330,13 +323,13 @@ export const AuthModal: React.FC = () => {
 
         {/* Demo Auto-fill Helper */}
         <div className="mt-5 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-          <span>Hackathon Demo Auto-fill?</span>
+          <span>Demo mode testing?</span>
           <button
             type="button"
             onClick={fillDemoAccount}
             className="text-teal-600 dark:text-teal-400 font-bold hover:underline"
           >
-            Auto-fill Mockup Fields
+            Auto-fill Credentials
           </button>
         </div>
 
@@ -346,14 +339,14 @@ export const AuthModal: React.FC = () => {
             <p>
               Don't have an account?{' '}
               <button onClick={() => setAuthMode('signup')} className="text-teal-600 dark:text-teal-400 font-bold hover:underline">
-                Register Users (Screen 2)
+                Create an Account
               </button>
             </p>
           ) : (
             <p>
               Already have an account?{' '}
               <button onClick={() => setAuthMode('login')} className="text-teal-600 dark:text-teal-400 font-bold hover:underline">
-                Login Screen (Screen 1)
+                Sign In
               </button>
             </p>
           )}
