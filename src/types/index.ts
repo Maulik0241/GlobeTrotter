@@ -97,6 +97,8 @@ export interface BudgetBreakdown {
   budgetCap: number;
   dailyAverage: number;
   overbudgetDays: number[];
+  remaining: number;
+  isOverBudget: boolean;
 }
 
 export interface PlatformStats {

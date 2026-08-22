@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, MapPin, Plus } from 'lucide-react';
 import { useTrips } from '../context/TripContext';
 import type { CityCatalogItem } from '../types';
@@ -27,37 +28,37 @@ export const AddStopModal: React.FC<AddStopModalProps> = ({ tripId, isOpen, onCl
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8">
+  const modalContent = (
+    <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-full min-h-screen z-[9999] bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#12181F] border border-[#DDE5E8] dark:border-white/10 rounded-3xl shadow-2xl p-6 sm:p-8 text-[#1A2B32] dark:text-[#F8FAFC] my-auto">
         
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+          className="absolute top-4 right-4 p-2 text-theme-muted hover:text-theme-main rounded-full hover:bg-theme-subtle transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[#007A87]/15 dark:bg-[#00E5FF]/15 text-[#007A87] dark:text-[#00E5FF] border border-[#007A87]/30 dark:border-[#00E5FF]/30 flex items-center justify-center">
             <MapPin className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-100">Add City Stop to Trip</h3>
-            <p className="text-xs text-slate-400">Expand your multi-city journey with new destinations</p>
+            <h3 className="text-xl font-black text-theme-main font-header">Add City Stop to Trip</h3>
+            <p className="text-xs text-theme-muted">Expand your multi-city journey with new destinations</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Select Destination City</label>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">Select Destination City</label>
             <select
               value={selectedCityId}
               onChange={(e) => setSelectedCityId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
+              className="w-full px-4 py-3 bg-theme-subtle border border-theme rounded-2xl text-theme-main focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF] text-sm cursor-pointer"
             >
               {cities.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} className="bg-theme-card">
                   {c.name}, {c.country} ({c.cost_index} • Avg ${c.avg_daily_cost}/day)
                 </option>
               ))}
@@ -66,23 +67,23 @@ export const AddStopModal: React.FC<AddStopModalProps> = ({ tripId, isOpen, onCl
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Arrival Date</label>
+              <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">Arrival Date</label>
               <input
                 type="date"
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
+                className="w-full px-4 py-3 bg-theme-subtle border border-theme rounded-2xl text-theme-main focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF] text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Departure Date</label>
+              <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">Departure Date</label>
               <input
                 type="date"
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
+                className="w-full px-4 py-3 bg-theme-subtle border border-theme rounded-2xl text-theme-main focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF] text-sm"
               />
             </div>
           </div>
@@ -90,7 +91,7 @@ export const AddStopModal: React.FC<AddStopModalProps> = ({ tripId, isOpen, onCl
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
+              className="btn-cta w-full py-3.5 px-4 rounded-2xl text-sm font-black shadow-lg flex items-center justify-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Add Stop to Itinerary</span>
@@ -100,4 +101,6 @@ export const AddStopModal: React.FC<AddStopModalProps> = ({ tripId, isOpen, onCl
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

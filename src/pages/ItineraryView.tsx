@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, DollarSign, CheckCircle2, Circle, Share2, Printer, Edit3, LayoutList, CalendarRange } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, SlidersHorizontal, ArrowDown, DollarSign, Calendar, Edit3, Share2 } from 'lucide-react';
 import { useTrips } from '../context/TripContext';
 
 interface ItineraryViewProps {
@@ -7,16 +7,19 @@ interface ItineraryViewProps {
 }
 
 export const ItineraryView: React.FC<ItineraryViewProps> = ({ setCurrentTab }) => {
-  const { currentTrip, toggleActivityStatus, calculateBudgetBreakdown } = useTrips();
-  const [viewMode, setViewMode] = useState<'timeline' | 'cities'>('timeline');
+  const { currentTrip, calculateBudgetBreakdown } = useTrips();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('All');
+  const [sortBy, setSortBy] = useState<'day' | 'cost' | 'name'>('day');
 
   if (!currentTrip) {
     return (
-      <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-3xl space-y-4">
-        <h3 className="text-lg font-bold text-slate-200">No Trip Selected</h3>
+      <div className="w-full text-center py-20 glass-panel rounded-3xl space-y-4 border border-theme bg-theme-card">
+        <h3 className="text-xl font-bold text-theme-main font-header">No Trip Selected</h3>
+        <p className="text-xs text-theme-muted">Please select a trip to view its detailed itinerary.</p>
         <button
           onClick={() => setCurrentTab('my-trips')}
-          className="px-4 py-2 rounded-xl bg-teal-500 text-slate-950 font-bold text-xs"
+          className="btn-cta px-6 py-3 rounded-2xl text-xs font-black"
         >
           Browse Trips
         </button>
@@ -26,218 +29,203 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ setCurrentTab }) =
 
   const breakdown = calculateBudgetBreakdown(currentTrip);
 
-  const allActivitiesByDay: { [day: number]: { activity: any; stopName: string }[] } = {};
+  // Group activities by Day number
+  const activitiesByDay: { [day: number]: any[] } = {};
   currentTrip.stops.forEach((stop) => {
     stop.activities.forEach((act) => {
-      if (!allActivitiesByDay[act.day_number]) {
-        allActivitiesByDay[act.day_number] = [];
+      if (!activitiesByDay[act.day_number]) {
+        activitiesByDay[act.day_number] = [];
       }
-      allActivitiesByDay[act.day_number].push({ activity: act, stopName: stop.city_name });
+      activitiesByDay[act.day_number].push({ ...act, city_name: stop.city_name });
     });
   });
 
-  const sortedDays = Object.keys(allActivitiesByDay).map(Number).sort((a, b) => a - b);
+  const sortedDays = Object.keys(activitiesByDay).map(Number).sort((a, b) => a - b);
 
   return (
-    <div className="space-y-8 pb-16 animate-fade-in">
+    <div className="w-full space-y-8 pb-24 animate-fade-in relative">
       
-      {/* Header Cover Card */}
-      <div className="relative bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden p-6 sm:p-10 shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10" />
+      {/* 1. Page Banner Header */}
+      <div className="relative w-full glass-panel rounded-3xl overflow-hidden p-6 sm:p-10 shadow-2xl border border-theme bg-theme-card">
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent z-10" />
         <img
           src={currentTrip.cover_photo}
           alt={currentTrip.name}
-          className="absolute inset-0 w-full h-full object-cover opacity-40 filter brightness-75"
+          className="absolute inset-0 w-full h-full object-cover opacity-40 filter brightness-75 scale-105"
         />
 
         <div className="relative z-20 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                Itinerary View
-              </span>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-950/80 text-slate-300 border border-slate-800">
-                {currentTrip.stops.length} Destination Cities
-              </span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white">{currentTrip.name}</h1>
-            <p className="text-xs text-slate-300 leading-relaxed">{currentTrip.description}</p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-1">
+          <div className="space-y-2 max-w-2xl">
+            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/30 uppercase tracking-wider">
+              Selected Place Itinerary
+            </span>
+            <h1 className="text-3xl sm:text-5xl font-black text-white font-header">{currentTrip.name}</h1>
+            <p className="text-xs sm:text-sm text-slate-300 flex items-center gap-4 pt-1">
               <span className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-teal-400" />
-                {currentTrip.start_date} to {currentTrip.end_date}
+                <Calendar className="w-4 h-4 text-[#00E5FF]" />
+                {currentTrip.start_date} ~ {currentTrip.end_date}
               </span>
               <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
                 <DollarSign className="w-4 h-4" />
-                Est. Total: ${breakdown.totalEstimated} (Budget: ${currentTrip.total_budget})
+                Est. Total: ${breakdown.totalEstimated} / Target: ${currentTrip.total_budget}
               </span>
-            </div>
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setCurrentTab('itinerary-builder')}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 border border-teal-500/30 text-xs font-semibold transition-colors"
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-colors cursor-pointer"
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-4 h-4 text-[#00E5FF]" />
               <span>Edit Builder</span>
             </button>
-
             <button
               onClick={() => setCurrentTab('shared-itinerary')}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-colors cursor-pointer"
             >
-              <Share2 className="w-4 h-4" />
-              <span>Share Trip</span>
+              <Share2 className="w-4 h-4 text-emerald-400" />
+              <span>Share</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mode View Toggle */}
-      <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-lg">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode('timeline')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all ${
-              viewMode === 'timeline'
-                ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 shadow-md shadow-teal-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-            }`}
-          >
-            <CalendarRange className="w-4 h-4" />
-            <span>Day-by-Day Timeline</span>
-          </button>
-          <button
-            onClick={() => setViewMode('cities')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all ${
-              viewMode === 'cities'
-                ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 shadow-md shadow-teal-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-            }`}
-          >
-            <LayoutList className="w-4 h-4" />
-            <span>Grouped by City</span>
-          </button>
+      {/* 2. Search & Controls Bar: [ Search bar ... | Group by | Filter | Sort by... ] (Screen 9 Mockup) */}
+      <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-theme shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4 w-full bg-theme-card">
+        {/* Search Bar */}
+        <div className="relative w-full lg:w-96">
+          <Search className="absolute left-4 top-3.5 w-4 h-4 text-theme-muted" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bar ..."
+            className="w-full pl-11 pr-4 py-2.5 bg-theme-subtle border border-theme rounded-2xl text-theme-main placeholder:text-theme-muted text-xs focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
+          />
         </div>
 
-        <button
-          onClick={() => window.print()}
-          className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>Print Summary</span>
-        </button>
+        {/* Action Controls: Group by | Filter | Sort by */}
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+          <div className="flex items-center gap-2 bg-theme-subtle p-1.5 rounded-2xl border border-theme">
+            <Filter className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF] ml-2" />
+            <select
+              value={selectedFilter}
+              onChange={(e) => setSelectedFilter(e.target.value)}
+              className="bg-transparent text-theme-main text-xs font-bold focus:outline-none pr-2 cursor-pointer"
+            >
+              <option value="All" className="bg-theme-card">Group by: All Days</option>
+              <option value="Completed" className="bg-theme-card">Group by: Completed</option>
+              <option value="Pending" className="bg-theme-card">Group by: Pending</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 bg-theme-subtle p-1.5 rounded-2xl border border-theme">
+            <ArrowUpDown className="w-4 h-4 text-[#FF5A5F] dark:text-[#FF7A00] ml-2" />
+            <select
+              value={sortBy}
+              onChange={(e: any) => setSortBy(e.target.value)}
+              className="bg-transparent text-theme-main text-xs font-bold focus:outline-none pr-2 cursor-pointer"
+            >
+              <option value="day" className="bg-theme-card">Sort by: Day Number</option>
+              <option value="cost" className="bg-theme-card">Sort by: Expense Cost</option>
+              <option value="name" className="bg-theme-card">Sort by: Title</option>
+            </select>
+          </div>
+
+          <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-theme-subtle hover:brightness-95 border border-theme text-xs font-bold text-theme-main">
+            <SlidersHorizontal className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
+            <span>Filter</span>
+          </button>
+        </div>
       </div>
 
-      {/* Content Rendering */}
-      {viewMode === 'timeline' ? (
-        <div className="space-y-8 relative before:absolute before:inset-0 before:left-4 sm:before:left-6 before:w-0.5 before:bg-slate-800">
-          {sortedDays.length === 0 ? (
-            <p className="text-center py-12 text-slate-400 text-xs">No activities scheduled yet. Open the Itinerary Builder to add items.</p>
-          ) : (
-            sortedDays.map((dayNum) => (
-              <div key={dayNum} className="relative pl-10 sm:pl-14 space-y-4">
-                <div className="absolute left-1.5 sm:left-3.5 top-0.5 w-6 h-6 rounded-full bg-teal-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-lg shadow-teal-500/40">
-                  {dayNum}
-                </div>
+      {/* 3. Main Itinerary Header (Screen 9 Wireframe Match) */}
+      <div className="text-center space-y-2 py-4">
+        <h2 className="text-3xl sm:text-4xl font-black text-theme-main font-header tracking-tight">
+          Itinerary for a selected place
+        </h2>
+        <p className="text-xs sm:text-sm text-theme-muted">Timeline view with physical activity sequence and expense breakdown</p>
+      </div>
 
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-slate-100">Day {dayNum} Overview</h3>
-                </div>
+      {/* 4. Table Header: Physical Activity | Expense (Screen 9 Wireframe Match) */}
+      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-theme bg-theme-card shadow-2xl space-y-8 w-full">
+        <div className="grid grid-cols-12 gap-4 pb-4 border-b-2 border-theme font-black text-sm uppercase tracking-wider text-theme-main font-header">
+          <div className="col-span-8 sm:col-span-9 flex items-center gap-2">
+            <span>Physical Activity</span>
+          </div>
+          <div className="col-span-4 sm:col-span-3 text-right">
+            <span>Expense</span>
+          </div>
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {allActivitiesByDay[dayNum].map(({ activity, stopName }) => (
-                    <div
-                      key={activity.id}
-                      className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl hover:border-slate-700 transition-all space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <button
-                            onClick={() => toggleActivityStatus(currentTrip.id, activity.stop_id, activity.id)}
-                            className="mt-0.5"
-                          >
-                            {activity.is_completed ? (
-                              <CheckCircle2 className="w-5 h-5 text-teal-400" />
-                            ) : (
-                              <Circle className="w-5 h-5 text-slate-600" />
-                            )}
-                          </button>
-                          <div>
-                            <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">
-                              {stopName} • {activity.category}
-                            </span>
-                            <h4
-                              className={`text-base font-bold ${
-                                activity.is_completed ? 'line-through text-slate-400' : 'text-slate-100'
-                              }`}
-                            >
-                              {activity.title}
-                            </h4>
+        {/* Timeline Rows grouped by Day (Screen 9 Wireframe Layout) */}
+        {sortedDays.length === 0 ? (
+          <div className="text-center py-16 text-theme-muted text-xs italic">
+            No physical activities added to this itinerary yet.
+          </div>
+        ) : (
+          <div className="space-y-10 w-full">
+            {sortedDays.map((dayNum) => {
+              const dayActivities = activitiesByDay[dayNum] || [];
+
+              return (
+                <div key={dayNum} className="space-y-6 w-full">
+                  {/* Day Badge (Day 1, Day 2...) */}
+                  <div className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl bg-[#007A87]/15 dark:bg-[#00E5FF]/15 text-[#007A87] dark:text-[#00E5FF] border border-[#007A87]/30 dark:border-[#00E5FF]/30 font-black text-sm font-header">
+                    <span>Day {dayNum}</span>
+                  </div>
+
+                  {/* List of Activities with Downward Arrows ↓ (Screen 9 Wireframe Layout) */}
+                  <div className="space-y-4 w-full">
+                    {dayActivities.map((act, actIdx) => (
+                      <React.Fragment key={act.id}>
+                        <div className="grid grid-cols-12 gap-4 items-center">
+                          
+                          {/* Physical Activity Box */}
+                          <div className="col-span-8 sm:col-span-9 p-5 rounded-2xl bg-theme-subtle border border-theme shadow-md flex items-center justify-between gap-4">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-theme-muted block">
+                                {act.city_name} • {act.category}
+                              </span>
+                              <h4 className="text-base font-bold text-theme-main font-header">{act.title}</h4>
+                              {act.description && (
+                                <p className="text-xs text-theme-muted line-clamp-1 mt-1">{act.description}</p>
+                              )}
+                            </div>
+                            <div className="text-right text-xs text-theme-muted shrink-0 hidden sm:block">
+                              <span>{act.duration_hours} hrs</span>
+                              {act.scheduled_time && <span className="block font-semibold">{act.scheduled_time}</span>}
+                            </div>
                           </div>
+
+                          {/* Expense Box */}
+                          <div className="col-span-4 sm:col-span-3 p-5 rounded-2xl bg-theme-subtle border border-theme shadow-md text-right flex flex-col justify-center items-end">
+                            <span className="text-[10px] uppercase font-bold text-theme-muted block">Cost</span>
+                            <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                              ${act.cost}
+                            </span>
+                          </div>
+
                         </div>
-                        <span className="font-bold text-emerald-400 text-sm">${activity.cost}</span>
-                      </div>
 
-                      {activity.description && (
-                        <p className="text-xs text-slate-400 leading-relaxed">{activity.description}</p>
-                      )}
-
-                      <div className="pt-2 border-t border-slate-800/80 flex items-center gap-4 text-xs text-slate-400">
-                        {activity.scheduled_time && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-slate-500" />
-                            <span>{activity.scheduled_time}</span>
+                        {/* Downward Arrow ↓ Connecting Physical Activities */}
+                        {actIdx < dayActivities.length - 1 && (
+                          <div className="flex justify-center py-1">
+                            <div className="w-8 h-8 rounded-full bg-theme-subtle border border-theme flex items-center justify-center text-[#007A87] dark:text-[#00E5FF] shadow-sm">
+                              <ArrowDown className="w-4 h-4 animate-bounce" />
+                            </div>
                           </div>
                         )}
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" />
-                          <span>{activity.duration_hours} hrs duration</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {currentTrip.stops.map((stop) => (
-            <div key={stop.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-              <div className="flex items-center gap-4 border-b border-slate-800 pb-4">
-                <img src={stop.cover_image} alt={stop.city_name} className="w-14 h-14 rounded-2xl object-cover" />
-                <div>
-                  <h3 className="text-2xl font-bold text-white">
-                    {stop.city_name}, <span className="text-slate-400 font-normal">{stop.country}</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                    <Calendar className="w-3.5 h-3.5 text-teal-400" />
-                    <span>{stop.arrival_date} to {stop.departure_date}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {stop.activities.map((act) => (
-                  <div key={act.id} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">
-                        Day {act.day_number} • {act.category}
-                      </span>
-                      <h4 className="text-sm font-bold text-slate-100">{act.title}</h4>
-                      <p className="text-xs text-slate-400 mt-1">{act.description}</p>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-400">${act.cost}</span>
+                      </React.Fragment>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
     </div>
   );

@@ -1,224 +1,378 @@
 import React, { useState } from 'react';
-import { Calendar, DollarSign, Image as ImageIcon, MapPin, Sparkles, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Sparkles, CheckCircle2, AlertCircle, Upload } from 'lucide-react';
 import { useTrips } from '../context/TripContext';
+import { useAuth } from '../context/AuthContext';
 
 interface CreateTripProps {
-  onSuccess: (tripId: string) => void;
+  onSuccess: () => void;
   onCancel: () => void;
 }
 
-const PRESET_COVERS = [
-  'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=1200&q=80',
-];
-
 export const CreateTrip: React.FC<CreateTripProps> = ({ onSuccess, onCancel }) => {
-  const { createTrip, cities } = useTrips();
+  const { createTrip, addStopToTrip, cities, activityCatalog } = useTrips();
+  const { user } = useAuth();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState('2026-10-01');
-  const [endDate, setEndDate] = useState('2026-10-10');
+  // Form State
+  const [tripName, setTripName] = useState('');
+  const [selectedPlace, setSelectedPlace] = useState(cities[0]?.name || 'Paris');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
   const [totalBudget, setTotalBudget] = useState(2500);
-  const [coverPhoto, setCoverPhoto] = useState(PRESET_COVERS[0]);
-  const [initialCityId, setInitialCityId] = useState(cities[0]?.id || 'paris');
-  const [isPublic, setIsPublic] = useState(true);
+  const [description, setDescription] = useState('');
+  const [coverPhoto, setCoverPhoto] = useState(
+    'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80'
+  );
+
+  // Validation State
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validate form inputs
+  const validateForm = (): boolean => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!tripName.trim()) {
+      newErrors.tripName = 'Trip name is required.';
+    } else if (tripName.trim().length < 3) {
+      newErrors.tripName = 'Trip name must be at least 3 characters long.';
+    }
+
+    if (!selectedPlace) {
+      newErrors.selectedPlace = 'Please select a destination place.';
+    }
+
+    if (!startDate) {
+      newErrors.startDate = 'Start date is required.';
+    }
+
+    if (!endDate) {
+      newErrors.endDate = 'End date is required.';
+    } else if (new Date(endDate) < new Date(startDate)) {
+      newErrors.endDate = 'End date cannot be before the start date.';
+    }
+
+    if (!totalBudget || totalBudget <= 0) {
+      newErrors.totalBudget = 'Target budget must be a positive number greater than $0.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
+    if (!validateForm()) return;
 
-    const newTripId = createTrip(
-      {
-        user_id: 'usr-101',
-        name,
-        description: description || 'Personalized multi-city itinerary.',
-        cover_photo: coverPhoto,
-        start_date: startDate,
-        end_date: endDate,
-        total_budget: Number(totalBudget),
-        is_public: isPublic,
-      },
-      initialCityId
-    );
+    setIsSubmitting(true);
 
-    onSuccess(newTripId);
+    const initialCityObj = cities.find((c) => c.name === selectedPlace) || cities[0];
+
+    const newTripId = createTrip({
+      name: tripName,
+      description: description || `Personalized trip to ${selectedPlace} and global destinations.`,
+      cover_photo: coverPhoto,
+      start_date: startDate,
+      end_date: endDate,
+      total_budget: Number(totalBudget),
+      is_public: true,
+      user_id: user?.id || 'usr-demo',
+    });
+
+    if (newTripId && initialCityObj) {
+      addStopToTrip(newTripId, initialCityObj, startDate, endDate);
+    }
+
+    setIsSubmitting(false);
+    onSuccess();
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-16">
+    <div className="w-full space-y-8 pb-24 animate-fade-in relative">
       
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onCancel}
-          className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-black text-slate-100">Create New Trip</h1>
-          <p className="text-xs text-slate-400">Initialize your personalized multi-city itinerary</p>
-        </div>
+      {/* 1. Page Title */}
+      <div className="space-y-1">
+        <h1 className="text-3xl sm:text-5xl font-black text-theme-main font-header tracking-tight">
+          Plan a new trip
+        </h1>
+        <p className="text-xs sm:text-sm text-theme-muted">Configure dates, select destination place, and review activities.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+      {/* Validation Top Banner if errors exist */}
+      {Object.keys(errors).length > 0 && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center gap-3 animate-pulse">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="text-xs font-bold">
+            Please fix the validation errors highlighted below before submitting.
+          </div>
+        </div>
+      )}
+
+      {/* 2. Form Section */}
+      <form onSubmit={handleSubmit} className="w-full glass-panel p-6 sm:p-10 rounded-3xl border border-theme shadow-2xl space-y-6 bg-theme-card">
         
-        {/* Trip Title */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Trip Name</label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Euro Summer Tour 2026 or Tokyo Autumn Getaway"
-            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 text-base"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Trip Title */}
+          <div>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">
+              Trip Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={tripName}
+              onChange={(e) => {
+                setTripName(e.target.value);
+                if (errors.tripName) setErrors({ ...errors, tripName: '' });
+              }}
+              placeholder="e.g. Grand European Exploration"
+              className={`w-full px-4 py-3 bg-theme-subtle border rounded-2xl text-theme-main text-sm focus:outline-none transition-colors ${
+                errors.tripName ? 'border-rose-500 bg-rose-500/5' : 'border-theme focus:border-[#007A87] dark:focus:border-[#00E5FF]'
+              }`}
+            />
+            {errors.tripName && (
+              <p className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                <span>{errors.tripName}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Select a Place */}
+          <div>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">
+              Select a Place : <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
+              <select
+                value={selectedPlace}
+                onChange={(e) => {
+                  setSelectedPlace(e.target.value);
+                  const found = cities.find((c) => c.name === e.target.value);
+                  if (found) setCoverPhoto(found.image_url);
+                  if (errors.selectedPlace) setErrors({ ...errors, selectedPlace: '' });
+                }}
+                className={`w-full pl-10 pr-4 py-3 bg-theme-subtle border rounded-2xl text-theme-main text-sm focus:outline-none cursor-pointer ${
+                  errors.selectedPlace ? 'border-rose-500 bg-rose-500/5' : 'border-theme focus:border-[#007A87] dark:focus:border-[#00E5FF]'
+                }`}
+              >
+                {cities.map((city) => (
+                  <option key={city.id} value={city.name} className="bg-theme-card">
+                    {city.name} ({city.country}) - ${city.avg_daily_cost}/day
+                  </option>
+                ))}
+              </select>
+            </div>
+            {errors.selectedPlace && (
+              <p className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                <span>{errors.selectedPlace}</span>
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Dates & Budget */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Start Date */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Start Date</label>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">
+              Start Date: <span className="text-rose-500">*</span>
+            </label>
             <div className="relative">
-              <Calendar className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
+              <Calendar className="absolute left-3.5 top-3.5 w-4 h-4 text-theme-muted" />
               <input
                 type="date"
-                required
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (errors.startDate) setErrors({ ...errors, startDate: '' });
+                }}
+                className={`w-full pl-10 pr-4 py-3 bg-theme-subtle border rounded-2xl text-theme-main text-sm focus:outline-none ${
+                  errors.startDate ? 'border-rose-500 bg-rose-500/5' : 'border-theme focus:border-[#007A87] dark:focus:border-[#00E5FF]'
+                }`}
               />
             </div>
+            {errors.startDate && (
+              <p className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                <span>{errors.startDate}</span>
+              </p>
+            )}
           </div>
 
+          {/* End Date */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">End Date</label>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">
+              End Date: <span className="text-rose-500">*</span>
+            </label>
             <div className="relative">
-              <Calendar className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
+              <Calendar className="absolute left-3.5 top-3.5 w-4 h-4 text-theme-muted" />
               <input
                 type="date"
-                required
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  if (errors.endDate) setErrors({ ...errors, endDate: '' });
+                }}
+                className={`w-full pl-10 pr-4 py-3 bg-theme-subtle border rounded-2xl text-theme-main text-sm focus:outline-none ${
+                  errors.endDate ? 'border-rose-500 bg-rose-500/5' : 'border-theme focus:border-[#007A87] dark:focus:border-[#00E5FF]'
+                }`}
               />
             </div>
+            {errors.endDate && (
+              <p className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                <span>{errors.endDate}</span>
+              </p>
+            )}
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Target Budget */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Target Budget ($)</label>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">
+              Total Target Budget ($USD): <span className="text-rose-500">*</span>
+            </label>
             <div className="relative">
-              <DollarSign className="absolute left-3.5 top-3.5 w-4 h-4 text-emerald-400" />
+              <DollarSign className="absolute left-3.5 top-3.5 w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <input
                 type="number"
-                min="100"
-                step="50"
                 value={totalBudget}
-                onChange={(e) => setTotalBudget(Number(e.target.value))}
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
+                onChange={(e) => {
+                  setTotalBudget(Number(e.target.value));
+                  if (errors.totalBudget) setErrors({ ...errors, totalBudget: '' });
+                }}
+                className={`w-full pl-10 pr-4 py-3 bg-theme-subtle border rounded-2xl text-theme-main text-sm focus:outline-none ${
+                  errors.totalBudget ? 'border-rose-500 bg-rose-500/5' : 'border-theme focus:border-[#007A87] dark:focus:border-[#00E5FF]'
+                }`}
               />
+            </div>
+            {errors.totalBudget && (
+              <p className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                <span>{errors.totalBudget}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Cover Photo Image Upload */}
+          <div>
+            <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">Cover Photo Image:</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={coverPhoto}
+                onChange={(e) => setCoverPhoto(e.target.value)}
+                placeholder="Paste Image URL or upload file..."
+                className="flex-1 px-4 py-3 bg-theme-subtle border border-theme rounded-2xl text-theme-main text-xs focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
+              />
+              <label className="px-4 py-3 bg-theme-subtle hover:brightness-95 border border-theme rounded-2xl text-xs font-bold text-theme-main cursor-pointer shrink-0 flex items-center gap-1.5">
+                <Upload className="w-4 h-4 text-[#007A87] dark:text-[#00E5FF]" />
+                <span>Upload File</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (reader.result) setCoverPhoto(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
             </div>
           </div>
         </div>
 
-        {/* Initial Destination */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Primary Starting Destination</label>
-          <div className="relative">
-            <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-teal-400" />
-            <select
-              value={initialCityId}
-              onChange={(e) => setInitialCityId(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 focus:outline-none focus:border-teal-500 text-sm"
-            >
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}, {c.country} ({c.cost_index} • Avg ${c.avg_daily_cost}/day)
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Trip Overview / Description</label>
+          <label className="block text-xs font-bold text-theme-main mb-1.5 font-header">Description / Trip Notes:</label>
           <textarea
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Share notes, goals, or theme for this trip..."
-            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 text-sm"
+            placeholder="Write a brief overview of your planned trip..."
+            className="w-full px-4 py-3 bg-theme-subtle border border-theme rounded-2xl text-theme-main text-sm focus:outline-none focus:border-[#007A87] dark:focus:border-[#00E5FF]"
           />
         </div>
 
-        {/* Cover Photo Picker */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Choose Cover Photo</label>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-3">
-            {PRESET_COVERS.map((url, idx) => (
-              <div
-                key={idx}
-                onClick={() => setCoverPhoto(url)}
-                className={`relative h-20 rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
-                  coverPhoto === url ? 'border-teal-400 scale-105 shadow-lg shadow-teal-500/20' : 'border-slate-800 opacity-60 hover:opacity-100'
-                }`}
-              >
-                <img src={url} alt="Cover preset" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-
-          <div className="relative">
-            <ImageIcon className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
-            <input
-              type="url"
-              value={coverPhoto}
-              onChange={(e) => setCoverPhoto(e.target.value)}
-              placeholder="Or paste custom image URL..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-2xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
-            />
-          </div>
-        </div>
-
-        {/* Privacy toggle */}
-        <div className="flex items-center justify-between p-4 bg-slate-950 rounded-2xl border border-slate-800">
-          <div>
-            <span className="text-sm font-semibold text-slate-200 block">Make Trip Sharable / Public</span>
-            <span className="text-xs text-slate-400">Allows generating public links for friends to view or copy</span>
-          </div>
-          <input
-            type="checkbox"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="w-5 h-5 accent-teal-500 rounded cursor-pointer"
-          />
-        </div>
-
-        {/* Action button */}
-        <div className="pt-4 flex items-center justify-end gap-3">
+        {/* Action Buttons */}
+        <div className="pt-4 border-t border-theme flex items-center justify-between">
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition-colors"
+            className="px-6 py-3 rounded-2xl bg-theme-subtle hover:brightness-95 text-theme-main text-xs font-bold border border-theme cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm transition-all shadow-xl shadow-teal-500/25 active:scale-95"
+            disabled={isSubmitting}
+            className="btn-cta px-8 py-4 rounded-2xl text-sm font-black shadow-xl cursor-pointer"
           >
-            <Sparkles className="w-4 h-4 stroke-[2.5]" />
-            <span>Create Itinerary</span>
+            {isSubmitting ? 'Creating Trip...' : 'Create & Open Itinerary Builder'}
           </button>
         </div>
-
       </form>
+
+      {/* 3. Bottom Half Section: Suggestion for Places to Visit/Activities to perform */}
+      <section className="space-y-6 pt-4 w-full">
+        <div className="flex items-center gap-2 border-b border-theme pb-3">
+          <Sparkles className="w-6 h-6 text-[#FF5A5F] dark:text-[#FF7A00]" />
+          <h2 className="text-2xl font-black text-theme-main font-header">
+            Suggestion for Places to Visit / Activities to perform
+          </h2>
+        </div>
+
+        {/* 6 Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+          {activityCatalog.slice(0, 6).map((act) => (
+            <div
+              key={act.id}
+              onClick={() => {
+                const foundCity = cities.find((c) => c.name === act.city_name);
+                if (foundCity) {
+                  setSelectedPlace(foundCity.name);
+                  setCoverPhoto(foundCity.image_url);
+                }
+              }}
+              className={`glass-card rounded-3xl overflow-hidden p-6 border transition-all cursor-pointer flex flex-col justify-between space-y-4 shadow-xl hover:shadow-2xl ${
+                selectedPlace === act.city_name
+                  ? 'border-[#007A87] dark:border-[#00E5FF] bg-[#007A87]/10 dark:bg-[#00E5FF]/10 ring-2 ring-[#007A87]/30 dark:ring-[#00E5FF]/30'
+                  : 'border-theme bg-theme-card'
+              }`}
+            >
+              <div className="relative h-44 rounded-2xl overflow-hidden">
+                <img src={act.image_url} alt={act.title} className="w-full h-full object-cover" />
+                <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold bg-slate-950/80 backdrop-blur-md text-[#00E5FF]">
+                  {act.category}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-lg font-bold text-theme-main font-header flex items-center justify-between">
+                  <span>{act.title}</span>
+                  {selectedPlace === act.city_name && (
+                    <CheckCircle2 className="w-5 h-5 text-[#007A87] dark:text-[#00E5FF]" />
+                  )}
+                </h4>
+                <p className="text-xs text-theme-muted line-clamp-2">{act.description}</p>
+              </div>
+
+              <div className="pt-2 border-t border-theme flex items-center justify-between text-xs font-bold">
+                <span className="text-theme-muted">{act.city_name} • {act.duration_hours} hrs</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">${act.cost}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
     </div>
   );

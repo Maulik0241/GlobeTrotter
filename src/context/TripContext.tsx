@@ -23,6 +23,7 @@ interface TripContextType {
   copyTripToUser: (sharedTrip: Trip) => string;
   calculateBudgetBreakdown: (trip: Trip) => BudgetBreakdown;
   getCityById: (id: string) => CityCatalogItem | undefined;
+  refreshFromSupabase: () => Promise<void>;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -34,21 +35,60 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : MOCK_TRIPS;
   });
   const [selectedTripId, setSelectedTripId] = useState<string | null>(trips[0]?.id || null);
-  const cities = MOCK_CITIES;
-  const activityCatalog = MOCK_ACTIVITIES_CATALOG;
+  const [cities, setCities] = useState<CityCatalogItem[]>(MOCK_CITIES);
+  const [activityCatalog, setActivityCatalog] = useState<ActivityCatalogItem[]>(MOCK_ACTIVITIES_CATALOG);
 
   useEffect(() => {
     localStorage.setItem('globetrotter_trips', JSON.stringify(trips));
   }, [trips]);
 
-  useEffect(() => {
-    if (isSupabaseConfigured()) {
-      supabase.from('trips').select('*, stops(*, activities(*))').then(({ data, error }) => {
-        if (data && !error && data.length > 0) {
-          // Format Supabase trips
-        }
-      });
+  const refreshFromSupabase = async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { data: dbCities } = await supabase.from('cities').select('*');
+      if (dbCities && dbCities.length > 0) {
+        setCities(dbCities);
+      }
+
+      const { data: dbActivities } = await supabase.from('activities').select('*');
+      if (dbActivities && dbActivities.length > 0) {
+        setActivityCatalog(dbActivities);
+      }
+
+      const { data: dbTrips } = await supabase.from('trips').select('*');
+      if (dbTrips && dbTrips.length > 0) {
+        setTrips((prev) => {
+          const map = new Map(prev.map((t) => [t.id, t]));
+          dbTrips.forEach((t: any) => {
+            if (!map.has(t.id)) {
+              map.set(t.id, {
+                id: t.id,
+                user_id: t.user_id || 'guest',
+                user_name: t.user_name || 'Traveler',
+                name: t.name,
+                description: t.description || '',
+                cover_photo: t.cover_photo || MOCK_CITIES[0].image_url,
+                start_date: t.start_date || '2026-09-10',
+                end_date: t.end_date || '2026-09-20',
+                total_budget: t.total_budget || 2500,
+                estimated_cost: t.estimated_cost || 0,
+                is_public: t.is_public ?? true,
+                share_code: t.share_code || 'SHARE-CODE',
+                created_at: t.created_at || new Date().toISOString(),
+                stops: [],
+              });
+            }
+          });
+          return Array.from(map.values());
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase fetch refresh note:', err);
     }
+  };
+
+  useEffect(() => {
+    refreshFromSupabase();
   }, []);
 
   const currentTrip = trips.find((t) => t.id === selectedTripId) || trips[0] || null;
@@ -91,11 +131,32 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setTrips((prev) => [newTrip, ...prev]);
     setSelectedTripId(newId);
+
+    if (isSupabaseConfigured()) {
+      supabase.from('trips').upsert({
+        id: newTrip.id,
+        user_id: newTrip.user_id,
+        name: newTrip.name,
+        description: newTrip.description,
+        cover_photo: newTrip.cover_photo,
+        start_date: newTrip.start_date,
+        end_date: newTrip.end_date,
+        total_budget: newTrip.total_budget,
+        is_public: newTrip.is_public,
+        share_code: newTrip.share_code,
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase sync trip error:', error.message);
+      });
+    }
+
     return newId;
   };
 
   const updateTrip = (id: string, data: Partial<Trip>) => {
     setTrips((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
+    if (isSupabaseConfigured()) {
+      supabase.from('trips').update(data).eq('id', id).then(() => {});
+    }
   };
 
   const deleteTrip = (id: string) => {
@@ -103,6 +164,9 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (selectedTripId === id) {
       const remaining = trips.filter((t) => t.id !== id);
       setSelectedTripId(remaining[0]?.id || null);
+    }
+    if (isSupabaseConfigured()) {
+      supabase.from('trips').delete().eq('id', id).then(() => {});
     }
   };
 
@@ -159,19 +223,20 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: 'act-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       trip_id: tripId,
       stop_id: stopId,
-      is_completed: false,
     };
 
     setTrips((prev) =>
       prev.map((trip) => {
         if (trip.id !== tripId) return trip;
-        return {
-          ...trip,
-          stops: trip.stops.map((stop) => {
-            if (stop.id !== stopId) return stop;
-            return { ...stop, activities: [...stop.activities, newActivity] };
-          }),
-        };
+        const updatedStops = trip.stops.map((stop) => {
+          if (stop.id !== stopId) return stop;
+          return { ...stop, activities: [...stop.activities, newActivity] };
+        });
+        const totalEst = updatedStops.reduce(
+          (acc, s) => acc + s.activities.reduce((a, act) => a + act.cost, 0),
+          0
+        );
+        return { ...trip, stops: updatedStops, estimated_cost: totalEst };
       })
     );
   };
@@ -180,18 +245,16 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTrips((prev) =>
       prev.map((trip) => {
         if (trip.id !== tripId) return trip;
-        return {
-          ...trip,
-          stops: trip.stops.map((stop) => {
-            if (stop.id !== stopId) return stop;
-            return {
-              ...stop,
-              activities: stop.activities.map((act) =>
-                act.id === activityId ? { ...act, is_completed: !act.is_completed } : act
-              ),
-            };
-          }),
-        };
+        const updatedStops = trip.stops.map((stop) => {
+          if (stop.id !== stopId) return stop;
+          return {
+            ...stop,
+            activities: stop.activities.map((a) =>
+              a.id === activityId ? { ...a, is_completed: !a.is_completed } : a
+            ),
+          };
+        });
+        return { ...trip, stops: updatedStops };
       })
     );
   };
@@ -200,45 +263,37 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTrips((prev) =>
       prev.map((trip) => {
         if (trip.id !== tripId) return trip;
-        return {
-          ...trip,
-          stops: trip.stops.map((stop) => {
-            if (stop.id !== stopId) return stop;
-            return {
-              ...stop,
-              activities: stop.activities.filter((act) => act.id !== activityId),
-            };
-          }),
-        };
+        const updatedStops = trip.stops.map((stop) => {
+          if (stop.id !== stopId) return stop;
+          return {
+            ...stop,
+            activities: stop.activities.filter((a) => a.id !== activityId),
+          };
+        });
+        const totalEst = updatedStops.reduce(
+          (acc, s) => acc + s.activities.reduce((a, act) => a + act.cost, 0),
+          0
+        );
+        return { ...trip, stops: updatedStops, estimated_cost: totalEst };
       })
     );
   };
 
   const copyTripToUser = (sharedTrip: Trip): string => {
-    const newId = 'trip-' + Date.now();
+    const copiedId = 'trip-' + Date.now();
     const copiedTrip: Trip = {
       ...sharedTrip,
-      id: newId,
-      name: `${sharedTrip.name} (My Copy)`,
+      id: copiedId,
       user_id: user?.id || 'guest',
       user_name: user?.full_name || 'Guest Traveler',
+      name: `Copy of ${sharedTrip.name}`,
       share_code: `COPY-${Math.floor(1000 + Math.random() * 9000)}`,
       created_at: new Date().toISOString(),
-      stops: sharedTrip.stops.map((s, sIdx) => ({
-        ...s,
-        id: `stop-copy-${sIdx}-${Date.now()}`,
-        trip_id: newId,
-        activities: s.activities.map((a, aIdx) => ({
-          ...a,
-          id: `act-copy-${aIdx}-${Date.now()}`,
-          trip_id: newId,
-          is_completed: false,
-        })),
-      })),
     };
+
     setTrips((prev) => [copiedTrip, ...prev]);
-    setSelectedTripId(newId);
-    return newId;
+    setSelectedTripId(copiedId);
+    return copiedId;
   };
 
   const calculateBudgetBreakdown = (trip: Trip): BudgetBreakdown => {
@@ -254,34 +309,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else if (act.category === 'Food') meals += act.cost;
         else activities += act.cost;
       });
-
-      if (stop.activities.length === 0) {
-        stay += 120 * 3;
-        meals += 50 * 3;
-        activities += 60;
-      }
     });
 
     const totalEstimated = transport + stay + activities + meals;
-    const start = new Date(trip.start_date);
-    const end = new Date(trip.end_date);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const durationDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-    const dailyAverage = Math.round(totalEstimated / durationDays);
-
-    const overbudgetDays: number[] = [];
-    const dailyTargetLimit = trip.total_budget / durationDays;
-    for (let d = 1; d <= durationDays; d++) {
-      let dayCost = 0;
-      trip.stops.forEach((stop) => {
-        stop.activities.forEach((act) => {
-          if (act.day_number === d) dayCost += act.cost;
-        });
-      });
-      if (dayCost > dailyTargetLimit && dailyTargetLimit > 0) {
-        overbudgetDays.push(d);
-      }
-    }
+    const totalDays = Math.max(1, trip.stops.length * 3);
+    const dailyAverage = Math.round(totalEstimated / totalDays);
 
     return {
       transport,
@@ -291,11 +323,15 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalEstimated,
       budgetCap: trip.total_budget,
       dailyAverage,
-      overbudgetDays,
+      overbudgetDays: totalEstimated > trip.total_budget ? [1] : [],
+      remaining: Math.max(0, trip.total_budget - totalEstimated),
+      isOverBudget: totalEstimated > trip.total_budget,
     };
   };
 
-  const getCityById = (id: string) => cities.find((c) => c.id === id);
+  const getCityById = (id: string) => {
+    return cities.find((c) => c.id === id);
+  };
 
   return (
     <TripContext.Provider
@@ -318,6 +354,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         copyTripToUser,
         calculateBudgetBreakdown,
         getCityById,
+        refreshFromSupabase,
       }}
     >
       {children}

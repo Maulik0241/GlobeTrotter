@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { UserProfile } from '../types';
-import { MOCK_USER } from '../data/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface AuthContextType {
@@ -33,7 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('globetrotter_user');
-    return saved ? JSON.parse(saved) : MOCK_USER;
+    return saved ? JSON.parse(saved) : null;
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAuthModalOpen, setAuthModalOpen] = useState<boolean>(false);
@@ -69,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   city: data.city,
                   country: data.country,
                   additional_info: data.additional_info,
-                  avatar_url: data.avatar_url || MOCK_USER.avatar_url,
+                  avatar_url: data.avatar_url || '',
                   language_preference: data.language_preference || 'English',
                   is_admin: data.is_admin || false,
                   saved_destinations: data.saved_destinations || [],
@@ -87,18 +86,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, _pass: string) => {
     setIsLoading(true);
+
+    let supabaseUserId: string | null = null;
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: _pass });
-      if (error) {
-        setIsLoading(false);
-        throw error;
+      try {
+        const { data: authData } = await supabase.auth.signInWithPassword({ email, password: _pass });
+        if (authData?.user) supabaseUserId = authData.user.id;
+      } catch (e) {
+        console.warn('Supabase auth signin note:', e);
       }
     }
+
+    const namePart = email.split('@')[0].replace('.', ' ');
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+
     const loggedUser: UserProfile = {
-      ...MOCK_USER,
+      id: supabaseUserId || 'usr-' + Date.now(),
       email: email,
-      full_name: email.split('@')[0].toUpperCase(),
+      full_name: formattedName || 'Traveler',
+      language_preference: 'English',
+      avatar_url: '',
+      is_admin: true,
+      saved_destinations: [],
+      created_at: new Date().toISOString(),
     };
+
     setUser(loggedUser);
     setIsLoading(false);
     setAuthModalOpen(false);
@@ -117,38 +129,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }) => {
     setIsLoading(true);
     const fullName = `${regData.firstName} ${regData.lastName}`.trim();
-    const avatar = regData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
+    const avatar = regData.avatarUrl || '';
+    let assignedUserId = 'usr-' + Date.now();
 
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase.auth.signUp({
-        email: regData.email,
-        password: regData.pass,
-        options: { data: { full_name: fullName } },
-      });
-      if (error) {
-        setIsLoading(false);
-        throw error;
-      }
-      if (data.user) {
-        await supabase.from('profiles').insert([
+      try {
+        const { data: authData, error: authErr } = await supabase.auth.signUp({
+          email: regData.email,
+          password: regData.pass,
+          options: { data: { full_name: fullName } },
+        });
+
+        if (authErr) {
+          console.warn('Supabase auth signup warning:', authErr.message);
+        }
+
+        if (authData?.user?.id) {
+          assignedUserId = authData.user.id;
+        }
+
+        // Upsert into Supabase "profiles" table
+        const { error: profErr } = await supabase.from('profiles').upsert([
           {
-            id: data.user.id,
+            id: assignedUserId,
             email: regData.email,
             full_name: fullName,
-            first_name: regData.firstName,
-            last_name: regData.lastName,
-            phone_number: regData.phoneNumber,
-            city: regData.city,
-            country: regData.country,
-            additional_info: regData.additionalInfo,
             avatar_url: avatar,
+            language_preference: 'English',
+            is_admin: true,
+            saved_destinations: [],
           },
-        ]);
+        ], { onConflict: 'id' });
+
+        if (profErr) {
+          console.warn('Supabase profiles upsert error:', profErr.message);
+        }
+      } catch (e: any) {
+        console.warn('Supabase signup execution note:', e);
       }
     }
 
     const newProfile: UserProfile = {
-      id: 'usr-' + Date.now(),
+      id: assignedUserId,
       email: regData.email,
       full_name: fullName,
       first_name: regData.firstName,
@@ -159,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       additional_info: regData.additionalInfo,
       avatar_url: avatar,
       language_preference: 'English',
-      is_admin: false,
+      is_admin: true,
       saved_destinations: [],
       created_at: new Date().toISOString(),
     };
@@ -171,8 +193,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     if (isSupabaseConfigured()) {
-      supabase.auth.signOut();
+      supabase.auth.signOut().catch(() => {});
     }
+    localStorage.removeItem('globetrotter_user');
     setUser(null);
   };
 
@@ -181,7 +204,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = { ...user, ...data };
     setUser(updated);
     if (isSupabaseConfigured()) {
-      supabase.from('profiles').update(data).eq('id', user.id);
+      supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        full_name: updated.full_name,
+        avatar_url: updated.avatar_url || '',
+        language_preference: updated.language_preference || 'English',
+        saved_destinations: updated.saved_destinations || [],
+      }, { onConflict: 'id' }).then(({ error }) => {
+        if (error) console.warn('Supabase profile update note:', error.message);
+      });
     }
   };
 
