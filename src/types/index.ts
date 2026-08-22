@@ -2,10 +2,16 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+  city?: string;
+  country?: string;
+  additional_info?: string;
   avatar_url?: string;
   language_preference: string;
   is_admin?: boolean;
-  saved_destinations?: string[]; // City IDs
+  saved_destinations?: string[];
   created_at: string;
 }
 
@@ -61,7 +67,7 @@ export interface CityCatalogItem {
   country: string;
   region: string;
   cost_index: '$' | '$$' | '$$$' | '$$$$';
-  popularity_score: number; // 1-100
+  popularity_score: number;
   image_url: string;
   description: string;
   avg_daily_cost: number;

@@ -8,7 +8,17 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  signup: (email: string, pass: string, name: string) => Promise<void>;
+  signup: (regData: {
+    email: string;
+    pass: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    city?: string;
+    country?: string;
+    additionalInfo?: string;
+    avatarUrl?: string;
+  }) => Promise<void>;
   logout: () => void;
   updateProfile: (data: Partial<UserProfile>) => void;
   toggleSavedDestination: (cityId: string) => void;
@@ -53,6 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   id: data.id,
                   email: data.email,
                   full_name: data.full_name || session.user.email?.split('@')[0] || 'Traveler',
+                  first_name: data.first_name,
+                  last_name: data.last_name,
+                  phone_number: data.phone_number,
+                  city: data.city,
+                  country: data.country,
+                  additional_info: data.additional_info,
                   avatar_url: data.avatar_url || MOCK_USER.avatar_url,
                   language_preference: data.language_preference || 'English',
                   is_admin: data.is_admin || false,
@@ -66,16 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
         }
       });
-
-      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!session) {
-          // preserve demo session
-        }
-      });
-
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
     }
   }, []);
 
@@ -98,13 +104,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthModalOpen(false);
   };
 
-  const signup = async (email: string, _pass: string, name: string) => {
+  const signup = async (regData: {
+    email: string;
+    pass: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    city?: string;
+    country?: string;
+    additionalInfo?: string;
+    avatarUrl?: string;
+  }) => {
     setIsLoading(true);
+    const fullName = `${regData.firstName} ${regData.lastName}`.trim();
+    const avatar = regData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
+
     if (isSupabaseConfigured()) {
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password: _pass,
-        options: { data: { full_name: name } },
+        email: regData.email,
+        password: regData.pass,
+        options: { data: { full_name: fullName } },
       });
       if (error) {
         setIsLoading(false);
@@ -114,23 +133,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.from('profiles').insert([
           {
             id: data.user.id,
-            email,
-            full_name: name,
-            avatar_url: MOCK_USER.avatar_url,
+            email: regData.email,
+            full_name: fullName,
+            first_name: regData.firstName,
+            last_name: regData.lastName,
+            phone_number: regData.phoneNumber,
+            city: regData.city,
+            country: regData.country,
+            additional_info: regData.additionalInfo,
+            avatar_url: avatar,
           },
         ]);
       }
     }
+
     const newProfile: UserProfile = {
       id: 'usr-' + Date.now(),
-      email,
-      full_name: name,
-      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+      email: regData.email,
+      full_name: fullName,
+      first_name: regData.firstName,
+      last_name: regData.lastName,
+      phone_number: regData.phoneNumber,
+      city: regData.city,
+      country: regData.country,
+      additional_info: regData.additionalInfo,
+      avatar_url: avatar,
       language_preference: 'English',
       is_admin: false,
       saved_destinations: [],
       created_at: new Date().toISOString(),
     };
+
     setUser(newProfile);
     setIsLoading(false);
     setAuthModalOpen(false);
