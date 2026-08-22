@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserProfile } from '../types';
+import type { UserProfile } from '../types';
 import { MOCK_USER } from '../data/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!session) {
-          // preserve demo state or set null if requested
+          // preserve demo session
         }
       });
 
@@ -88,7 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
     }
-    // Fallback or demo user login
     const loggedUser: UserProfile = {
       ...MOCK_USER,
       email: email,

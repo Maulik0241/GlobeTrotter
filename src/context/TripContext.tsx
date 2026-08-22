@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Trip, Stop, Activity, CityCatalogItem, ActivityCatalogItem, BudgetBreakdown } from '../types';
+import type { Trip, Stop, Activity, CityCatalogItem, ActivityCatalogItem, BudgetBreakdown } from '../types';
 import { MOCK_TRIPS, MOCK_CITIES, MOCK_ACTIVITIES_CATALOG } from '../data/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -45,7 +45,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSupabaseConfigured()) {
       supabase.from('trips').select('*, stops(*, activities(*))').then(({ data, error }) => {
         if (data && !error && data.length > 0) {
-          // Format Supabase trips if present
+          // Format Supabase trips
         }
       });
     }
@@ -248,7 +248,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let meals = 0;
 
     trip.stops.forEach((stop) => {
-      // Calculate activities
       stop.activities.forEach((act) => {
         if (act.category === 'Transport') transport += act.cost;
         else if (act.category === 'Stay') stay += act.cost;
@@ -256,7 +255,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else activities += act.cost;
       });
 
-      // Default baseline estimate if empty activities
       if (stop.activities.length === 0) {
         stay += 120 * 3;
         meals += 50 * 3;
@@ -271,7 +269,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const durationDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     const dailyAverage = Math.round(totalEstimated / durationDays);
 
-    // identify overbudget days
     const overbudgetDays: number[] = [];
     const dailyTargetLimit = trip.total_budget / durationDays;
     for (let d = 1; d <= durationDays; d++) {
