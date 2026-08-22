@@ -1,7 +1,8 @@
 {
   "name": "globetrotter",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "GlobeTrotter Personalized Multi-City Travel Planner",
   "type": "module",
   "scripts": {
     "dev": "vite",
