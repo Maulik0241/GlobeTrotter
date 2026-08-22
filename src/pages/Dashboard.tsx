@@ -242,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setCurrentTab, openCreateT
           className="btn-cta flex items-center gap-2.5 px-6 py-4 rounded-full text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
           <Plus className="w-5 h-5 stroke-[3]" />
-          <span>+ Plan a trip</span>
+          <span>Plan a trip</span>
         </button>
       </div>
 

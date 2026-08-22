@@ -80,7 +80,7 @@ export const ItineraryBuilder: React.FC<ItineraryBuilderProps> = ({ setCurrentTa
               className="btn-cta flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black shadow-lg cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>+ Add Section</span>
+              <span>Add Section</span>
             </button>
           </div>
         </div>
@@ -103,7 +103,7 @@ export const ItineraryBuilder: React.FC<ItineraryBuilderProps> = ({ setCurrentTa
               onClick={() => setIsAddStopOpen(true)}
               className="btn-cta px-6 py-3 rounded-2xl text-xs font-black cursor-pointer"
             >
-              + Add another Section
+              Add another Section
             </button>
           </div>
         ) : (
@@ -252,7 +252,7 @@ export const ItineraryBuilder: React.FC<ItineraryBuilderProps> = ({ setCurrentTa
             className="btn-cta flex items-center gap-2.5 px-8 py-4 rounded-2xl text-sm font-black shadow-2xl mx-auto cursor-pointer"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
-            <span>+ Add another Section</span>
+            <span>Add another Section</span>
           </button>
         </div>
       </div>

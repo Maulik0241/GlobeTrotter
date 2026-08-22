@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Trip, Stop, Activity, CityCatalogItem, ActivityCatalogItem, BudgetBreakdown } from '../types';
-import { MOCK_TRIPS, MOCK_CITIES, MOCK_ACTIVITIES_CATALOG } from '../data/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -26,17 +25,162 @@ interface TripContextType {
   refreshFromSupabase: () => Promise<void>;
 }
 
+const DEFAULT_CITIES: CityCatalogItem[] = [
+  {
+    id: 'paris',
+    name: 'Paris',
+    country: 'France',
+    region: 'Europe',
+    cost_index: '$$$',
+    popularity_score: 98,
+    image_url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+    description: 'The City of Light captivates travelers with romance, world-class gastronomy, haute couture, and timeless art landmarks.',
+    avg_daily_cost: 210,
+    tags: ['Art', 'Romance', 'Museums', 'Gastronomy'],
+  },
+  {
+    id: 'tokyo',
+    name: 'Tokyo',
+    country: 'Japan',
+    region: 'Asia',
+    cost_index: '$$$',
+    popularity_score: 96,
+    image_url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=800&q=80',
+    description: 'A exhilarating fusion of ultramodern neon skyscrapers, ancient Shinto shrines, bullet trains, and Michelin-starred dining.',
+    avg_daily_cost: 190,
+    tags: ['Technology', 'Anime', 'Food', 'Culture'],
+  },
+  {
+    id: 'rome',
+    name: 'Rome',
+    country: 'Italy',
+    region: 'Europe',
+    cost_index: '$$',
+    popularity_score: 95,
+    image_url: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=800&q=80',
+    description: 'An open-air museum filled with ancient Roman ruins, grand Vatican basilicas, bustling piazzas, and authentic gelato.',
+    avg_daily_cost: 165,
+    tags: ['History', 'Colosseum', 'Pasta', 'Architecture'],
+  },
+  {
+    id: 'dubai',
+    name: 'Dubai',
+    country: 'United Arab Emirates',
+    region: 'Middle East',
+    cost_index: '$$$$',
+    popularity_score: 91,
+    image_url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=800&q=80',
+    description: 'Futuristic oasis of luxury shopping, ultratall skyscrapers including Burj Khalifa, desert safaris, and artificial islands.',
+    avg_daily_cost: 310,
+    tags: ['Luxury', 'Desert', 'Shopping', 'Futuristic'],
+  },
+  {
+    id: 'zurich',
+    name: 'Zurich',
+    country: 'Switzerland',
+    region: 'Europe',
+    cost_index: '$$$$',
+    popularity_score: 94,
+    image_url: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=800&q=80',
+    description: 'Pristine Swiss city nestled on Lake Zurich with views of the snow-capped Alps, luxury watches, and fine chocolates.',
+    avg_daily_cost: 290,
+    tags: ['Alps', 'Lake', 'Chocolate', 'Luxury'],
+  },
+];
+
+const DEFAULT_TRIPS: Trip[] = [
+  {
+    id: 'trip-2026-01',
+    user_id: 'usr-101',
+    user_name: 'Alex Rivera',
+    name: 'Grand European & Asian Odyssey 2026',
+    description: 'A multi-city trip across Paris, Rome, Zurich, and Tokyo featuring cultural landmarks, gastronomy, and high-speed transit.',
+    cover_photo: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=1200&q=80',
+    start_date: '2026-09-10',
+    end_date: '2026-09-25',
+    total_budget: 3500,
+    estimated_cost: 2940,
+    is_public: true,
+    share_code: 'EURO-2026-ALEX',
+    created_at: '2026-02-01T10:00:00Z',
+    stops: [
+      {
+        id: 'stop-p1',
+        trip_id: 'trip-2026-01',
+        city_name: 'Paris',
+        country: 'France',
+        order_index: 0,
+        arrival_date: '2026-09-10',
+        departure_date: '2026-09-14',
+        notes: 'Hotel booked near Le Marais district. Eiffel Tower & Louvre reservations confirmed.',
+        cover_image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+        activities: [
+          {
+            id: 'act-101',
+            stop_id: 'stop-p1',
+            trip_id: 'trip-2026-01',
+            title: 'TGV Express Flight & Boutique Hotel Stay',
+            category: 'Transport',
+            cost: 450,
+            duration_hours: 4.0,
+            scheduled_time: '14:00',
+            day_number: 1,
+            is_completed: true,
+          },
+          {
+            id: 'act-102',
+            stop_id: 'stop-p1',
+            trip_id: 'trip-2026-01',
+            title: 'Eiffel Tower Summit Skip-The-Line Access',
+            category: 'Sightseeing',
+            cost: 45,
+            duration_hours: 2.5,
+            scheduled_time: '18:30',
+            day_number: 1,
+            is_completed: true,
+          },
+        ],
+      },
+      {
+        id: 'stop-r1',
+        trip_id: 'trip-2026-01',
+        city_name: 'Rome',
+        country: 'Italy',
+        order_index: 1,
+        arrival_date: '2026-09-14',
+        departure_date: '2026-09-18',
+        notes: 'Stay at Piazza Navona suites. Early morning Colosseum VIP tour.',
+        cover_image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=800&q=80',
+        activities: [
+          {
+            id: 'act-201',
+            stop_id: 'stop-r1',
+            trip_id: 'trip-2026-01',
+            title: 'Frecciarossa High-Speed Rail & Hotel Check-in',
+            category: 'Transport',
+            cost: 180,
+            duration_hours: 3.5,
+            scheduled_time: '11:00',
+            day_number: 5,
+            is_completed: false,
+          },
+        ],
+      },
+    ],
+  },
+];
+
 const TripContext = createContext<TripContextType | undefined>(undefined);
 
 export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [trips, setTrips] = useState<Trip[]>(() => {
     const saved = localStorage.getItem('globetrotter_trips');
-    return saved ? JSON.parse(saved) : MOCK_TRIPS;
+    return saved ? JSON.parse(saved) : DEFAULT_TRIPS;
   });
   const [selectedTripId, setSelectedTripId] = useState<string | null>(trips[0]?.id || null);
-  const [cities, setCities] = useState<CityCatalogItem[]>(MOCK_CITIES);
-  const [activityCatalog, setActivityCatalog] = useState<ActivityCatalogItem[]>(MOCK_ACTIVITIES_CATALOG);
+  const [cities, setCities] = useState<CityCatalogItem[]>(DEFAULT_CITIES);
+  const [activityCatalog, setActivityCatalog] = useState<ActivityCatalogItem[]>([]);
 
   useEffect(() => {
     localStorage.setItem('globetrotter_trips', JSON.stringify(trips));
@@ -45,16 +189,19 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshFromSupabase = async () => {
     if (!isSupabaseConfigured()) return;
     try {
+      // Fetch Cities back from Supabase
       const { data: dbCities } = await supabase.from('cities').select('*');
       if (dbCities && dbCities.length > 0) {
         setCities(dbCities);
       }
 
+      // Fetch Activities Catalog back from Supabase
       const { data: dbActivities } = await supabase.from('activities').select('*');
       if (dbActivities && dbActivities.length > 0) {
         setActivityCatalog(dbActivities);
       }
 
+      // Fetch Trips back from Supabase
       const { data: dbTrips } = await supabase.from('trips').select('*');
       if (dbTrips && dbTrips.length > 0) {
         setTrips((prev) => {
@@ -67,7 +214,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 user_name: t.user_name || 'Traveler',
                 name: t.name,
                 description: t.description || '',
-                cover_photo: t.cover_photo || MOCK_CITIES[0].image_url,
+                cover_photo: t.cover_photo || DEFAULT_CITIES[0].image_url,
                 start_date: t.start_date || '2026-09-10',
                 end_date: t.end_date || '2026-09-20',
                 total_budget: t.total_budget || 2500,
@@ -75,7 +222,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 is_public: t.is_public ?? true,
                 share_code: t.share_code || 'SHARE-CODE',
                 created_at: t.created_at || new Date().toISOString(),
-                stops: [],
+                stops: DEFAULT_TRIPS.find((mt) => mt.id === t.id)?.stops || [],
               });
             }
           });
@@ -136,6 +283,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.from('trips').upsert({
         id: newTrip.id,
         user_id: newTrip.user_id,
+        user_name: newTrip.user_name,
         name: newTrip.name,
         description: newTrip.description,
         cover_photo: newTrip.cover_photo,
@@ -144,7 +292,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         total_budget: newTrip.total_budget,
         is_public: newTrip.is_public,
         share_code: newTrip.share_code,
-      }).then(({ error }) => {
+      }, { onConflict: 'id' }).then(({ error }) => {
         if (error) console.warn('Supabase sync trip error:', error.message);
       });
     }
@@ -187,7 +335,23 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           notes: `Selected from destination discovery. Estimated daily cost ~$${city.avg_daily_cost}.`,
           activities: [],
         };
-        return { ...trip, stops: [...trip.stops, newStop] };
+        const updatedStops = [...trip.stops, newStop];
+
+        if (isSupabaseConfigured()) {
+          supabase.from('stops').upsert({
+            id: newStop.id,
+            trip_id: tripId,
+            city_name: newStop.city_name,
+            country: newStop.country,
+            order_index: newStop.order_index,
+            arrival_date: newStop.arrival_date,
+            departure_date: newStop.departure_date,
+            cover_image: newStop.cover_image,
+            notes: newStop.notes,
+          }, { onConflict: 'id' }).then(() => {});
+        }
+
+        return { ...trip, stops: updatedStops };
       })
     );
   };
@@ -196,10 +360,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTrips((prev) =>
       prev.map((trip) => {
         if (trip.id !== tripId) return trip;
-        return {
-          ...trip,
-          stops: trip.stops.filter((s) => s.id !== stopId).map((s, idx) => ({ ...s, order_index: idx })),
-        };
+        const updatedStops = trip.stops.filter((s) => s.id !== stopId).map((s, idx) => ({ ...s, order_index: idx }));
+        if (isSupabaseConfigured()) {
+          supabase.from('stops').delete().eq('id', stopId).then(() => {});
+        }
+        return { ...trip, stops: updatedStops };
       })
     );
   };
@@ -236,6 +401,21 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (acc, s) => acc + s.activities.reduce((a, act) => a + act.cost, 0),
           0
         );
+
+        if (isSupabaseConfigured()) {
+          supabase.from('activities').upsert({
+            id: newActivity.id,
+            city_id: newActivity.stop_id,
+            city_name: newActivity.title,
+            title: newActivity.title,
+            category: newActivity.category,
+            cost: newActivity.cost,
+            duration_hours: newActivity.duration_hours,
+            image_url: newActivity.image_url || '',
+            description: newActivity.description || '',
+          }, { onConflict: 'id' }).then(() => {});
+        }
+
         return { ...trip, stops: updatedStops, estimated_cost: totalEst };
       })
     );
@@ -274,6 +454,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (acc, s) => acc + s.activities.reduce((a, act) => a + act.cost, 0),
           0
         );
+
+        if (isSupabaseConfigured()) {
+          supabase.from('activities').delete().eq('id', activityId).then(() => {});
+        }
+
         return { ...trip, stops: updatedStops, estimated_cost: totalEst };
       })
     );
@@ -293,6 +478,23 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setTrips((prev) => [copiedTrip, ...prev]);
     setSelectedTripId(copiedId);
+
+    if (isSupabaseConfigured()) {
+      supabase.from('trips').upsert({
+        id: copiedTrip.id,
+        user_id: copiedTrip.user_id,
+        user_name: copiedTrip.user_name,
+        name: copiedTrip.name,
+        description: copiedTrip.description,
+        cover_photo: copiedTrip.cover_photo,
+        start_date: copiedTrip.start_date,
+        end_date: copiedTrip.end_date,
+        total_budget: copiedTrip.total_budget,
+        is_public: copiedTrip.is_public,
+        share_code: copiedTrip.share_code,
+      }, { onConflict: 'id' }).then(() => {});
+    }
+
     return copiedId;
   };
 

@@ -186,7 +186,7 @@ export const MyTrips: React.FC<MyTripsProps> = ({ setCurrentTab, openCreateTripM
           className="btn-cta flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-black shadow-lg cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>+ Plan a trip</span>
+          <span>Plan a trip</span>
         </button>
       </div>
 
