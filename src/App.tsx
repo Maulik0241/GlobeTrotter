@@ -158,7 +158,7 @@ export const MainContent: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer setCurrentTab={setCurrentTab} />
 
       {/* Authentication Modal */}
       <AuthModal />

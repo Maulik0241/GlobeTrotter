@@ -1,15 +1,29 @@
 import React from 'react';
 import { Compass, Code, Heart, ShieldCheck } from 'lucide-react';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  setCurrentTab?: (tab: string) => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ setCurrentTab }) => {
+  const handleNav = (tab: string) => {
+    if (setCurrentTab) {
+      setCurrentTab(tab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <footer className="w-full bg-[#FFFFFF] dark:bg-[#080E14] border-t border-[#DDE5E8] dark:border-white/10 text-[#6C7E8B] dark:text-[#94A3B8] py-12 mt-20 transition-colors duration-300">
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           
           <div className="space-y-4 md:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#007A87] via-[#00E5FF] to-[#FF7A00] flex items-center justify-center text-white dark:text-slate-950 shadow-md">
+            <div
+              className="flex items-center gap-2.5 cursor-pointer group"
+              onClick={() => handleNav('dashboard')}
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#007A87] via-[#00E5FF] to-[#FF7A00] flex items-center justify-center text-white dark:text-slate-950 shadow-md group-hover:scale-105 transition-transform">
                 <Compass className="w-5 h-5" />
               </div>
               <span className="text-xl font-black text-[#1A2B32] dark:text-[#F8FAFC] tracking-tight font-header">
@@ -26,10 +40,42 @@ export const Footer: React.FC = () => {
               Explore Platform
             </h4>
             <ul className="space-y-2 text-xs">
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Interactive Itinerary Builder</span></li>
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">City & Destination Discovery</span></li>
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Budget & Expense Breakdown</span></li>
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Timeline & Calendar Views</span></li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('itinerary-builder')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Interactive Itinerary Builder
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('city-search')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  City & Destination Discovery
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('trip-budget')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Budget & Expense Breakdown
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('trip-timeline')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Timeline & Calendar Views
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -38,10 +84,42 @@ export const Footer: React.FC = () => {
               Community & Sharing
             </h4>
             <ul className="space-y-2 text-xs">
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Public Trip Gallery</span></li>
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Fork & Copy Itineraries</span></li>
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Collaborative Multi-City Plans</span></li>
-              <li><span className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer">Realtime Cloud Sync</span></li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('my-trips')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Public Trip Gallery
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('my-trips')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Fork & Copy Itineraries
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('create-trip')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Collaborative Multi-City Plans
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('dashboard')}
+                  className="hover:text-[#007A87] dark:hover:text-[#00E5FF] transition-colors cursor-pointer text-left"
+                >
+                  Realtime Cloud Sync
+                </button>
+              </li>
             </ul>
           </div>
 
